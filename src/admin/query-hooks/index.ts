@@ -4,6 +4,6 @@ import { useProxyConfiguration } from "./useProxyConfigurations";
 import { useCreateProxyConfiguration } from "./useCreateProxyConfigurations";
 import { useCustomisation } from "./useCustomisations";
 import { useCreateCustomisation } from "./useCreateCustomisations";
-// import { useLogger } from "./useLogger";
+import { useLogger } from "./useLogger";
 
-export { useConfigurations, useCreateConfigurations,useProxyConfiguration,useCreateProxyConfiguration,useCreateCustomisation,useCustomisation};
+export { useConfigurations, useCreateConfigurations, useProxyConfiguration, useCreateProxyConfiguration, useCreateCustomisation, useCustomisation, useLogger };
