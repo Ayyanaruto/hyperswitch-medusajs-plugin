@@ -194,45 +194,6 @@ const LoggingDashboard = () => {
     }
   }, [isSuccess, data]);
 
-  const logLevelData = useMemo(() => {
-    return analyticsData
-      ? Object.entries(analyticsData.logsByLevel).map(([name, value]) => ({
-        name,
-        value,
-      }))
-      : [];
-  }, [analyticsData]);
-
-  const COLORS = ["#3B82F6", "#FBBF24", "#EF4444", "#10B981", "#8B5CF6"];
-
-  const logSourceData = useMemo(() => {
-    return analyticsData
-      ? Object.entries(analyticsData.logsBySource)
-        .map(([name, value]) => ({ name, value }))
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 10)
-      : [];
-  }, [analyticsData]);
-
-  const timeSeriesData = useMemo(() => {
-    const timeMap: Record<string, number> = {};
-
-    logs.forEach((log) => {
-      const date = new Date(log.timestamp);
-      const hour = date.getHours();
-      const timeKey = `${hour}:00`;
-
-      if (!timeMap[timeKey]) {
-        timeMap[timeKey] = 0;
-      }
-      timeMap[timeKey]++;
-    });
-
-    return Object.entries(timeMap).map(([time, volume]) => ({
-      time,
-      volume,
-    }));
-  }, [logs]);
 
   const filteredLogs = useMemo(() => {
     return logs
@@ -383,7 +344,7 @@ const LoggingDashboard = () => {
                   Avg Response Time
                 </h3>
                 <p className="text-2xl font-bold text-green-900">
-                  {analyticsData.averageResponseTime.toFixed(2)}ms
+                  {(analyticsData.averageResponseTime || 0).toFixed(2)}ms
                 </p>
               </div>
             </div>
