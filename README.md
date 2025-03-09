@@ -1,64 +1,136 @@
-<p align="center">
-  <a href="https://www.medusajs.com">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/59018053/229103275-b5e482bb-4601-46e6-8142-244f531cebdb.svg">
-    <source media="(prefers-color-scheme: light)" srcset="https://user-images.githubusercontent.com/59018053/229103726-e5b529a3-9b3f-4970-8a1f-c6af37f087bf.svg">
-    <img alt="Medusa logo" src="https://user-images.githubusercontent.com/59018053/229103726-e5b529a3-9b3f-4970-8a1f-c6af37f087bf.svg">
-    </picture>
-  </a>
-</p>
-<h1 align="center">
-  Medusa Plugin Starter
-</h1>
-
-<h4 align="center">
-  <a href="https://docs.medusajs.com">Documentation</a> |
-  <a href="https://www.medusajs.com">Website</a>
-</h4>
+# HyperSwitch Payment Processor Plugin for Medusa
 
 <p align="center">
-  Building blocks for digital commerce
-</p>
-<p align="center">
-  <a href="https://github.com/medusajs/medusa/blob/master/CONTRIBUTING.md">
-    <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat" alt="PRs welcome!" />
-  </a>
-    <a href="https://www.producthunt.com/posts/medusa"><img src="https://img.shields.io/badge/Product%20Hunt-%231%20Product%20of%20the%20Day-%23DA552E" alt="Product Hunt"></a>
-  <a href="https://discord.gg/xpCwq3Kfn8">
-    <img src="https://img.shields.io/badge/chat-on%20discord-7289DA.svg" alt="Discord Chat" />
-  </a>
-  <a href="https://twitter.com/intent/follow?screen_name=medusajs">
-    <img src="https://img.shields.io/twitter/follow/medusajs.svg?label=Follow%20@medusajs" alt="Follow @medusajs" />
+  <a href="https://hyperswitch.io">
+    <img alt="HyperSwitch logo" src="https://hyperswitch.io/logos/juspay-hyperswitch.svg" width="350">
   </a>
 </p>
 
-## Compatibility
+## Overview
 
-This starter is compatible with versions >= 2.4.0 of `@medusajs/medusa`. 
+HyperSwitch payment processor plugin for Medusa enables seamless payment processing through the HyperSwitch platform. This plugin supports multiple payment methods and provides a unified checkout experience for your Medusa-powered e-commerce store.
 
-## Getting Started
+## Features
 
-Visit the [Quickstart Guide](https://docs.medusajs.com/learn/installation) to set up a server.
+- ✅ Process payments through HyperSwitch's unified API
+- ✅ Support for multiple payment methods
+- ✅ Unified checkout experience
+- ✅ Webhook handling for payment events
+- ✅ Payment status synchronization
+- ✅ Refund processing
 
-Visit the [Plugins documentation](https://docs.medusajs.com/learn/fundamentals/plugins) to learn more about plugins and how to create them.
+## Prerequisites
 
-Visit the [Docs](https://docs.medusajs.com/learn/installation#get-started) to learn more about our system requirements.
+- [Medusa server](https://docs.medusajs.com/) version >= 2.4.0
+- [Node.js](https://nodejs.org/en/) version 16 or later
+- [HyperSwitch account](https://hyperswitch.io/register) and API keys
 
-## What is Medusa
+## Development Testing Guide
 
-Medusa is a set of commerce modules and tools that allow you to build rich, reliable, and performant commerce applications without reinventing core commerce logic. The modules can be customized and used to build advanced ecommerce stores, marketplaces, or any product that needs foundational commerce primitives. All modules are open-source and freely available on npm.
+Follow these steps to integrate and test the plugin in your local environment:
 
-Learn more about [Medusa’s architecture](https://docs.medusajs.com/learn/introduction/architecture) and [commerce modules](https://docs.medusajs.com/learn/fundamentals/modules/commerce-modules) in the Docs.
+### 1. Create a Medusa store
 
-## Community & Contributions
+```bash
+npx create-medusa-app@v2.4.0 medusa-test-store
+cd medusa-test-store
+```
 
-The community and core team are available in [GitHub Discussions](https://github.com/medusajs/medusa/discussions), where you can ask for support, discuss roadmap, and share ideas.
+> **Note**: This plugin has been verified with Medusa v2.4.0. Using other versions may require additional configuration.
 
-Join our [Discord server](https://discord.com/invite/medusajs) to meet other community members.
+### 2. Install required dependencies
 
-## Other channels
+```bash
+yarn add https-proxy-agent@^7.0.5 lucide-react@^0.460.0 class-variance-authority@^0.7.0
+```
 
-- [GitHub Issues](https://github.com/medusajs/medusa/issues)
-- [Twitter](https://twitter.com/medusajs)
-- [LinkedIn](https://www.linkedin.com/company/medusajs)
-- [Medusa Blog](https://medusajs.com/blog/)
+### 3. Clone and prepare the plugin
+
+```bash
+git clone https://github.com/Ayyanaruto/hyperswitch-medusajs-plugin.git
+cd hyperswitch-medusajs-plugin
+git checkout develop-plugin
+yarn install
+yarn build
+npx medusa plugin:publish
+```
+
+### 4. Add the plugin to your Medusa store
+
+```bash
+cd ../medusa-test-store
+npx medusa plugin:add juspay-hyperswitch
+```
+
+### 5. Configure your Medusa server
+
+Update your `medusa-config.ts` file:
+
+```typescript
+// medusa-config.ts
+import { loadEnv, defineConfig } from '@medusajs/framework/utils'
+
+loadEnv(process.env.NODE_ENV || 'development', process.cwd())
+
+module.exports = defineConfig({
+  projectConfig: {
+    databaseUrl: process.env.DATABASE_URL,
+    http: {
+      storeCors: process.env.STORE_CORS!,
+      adminCors: process.env.ADMIN_CORS!,
+      authCors: process.env.AUTH_CORS!,
+      jwtSecret: process.env.JWT_SECRET || "supersecret",
+      cookieSecret: process.env.COOKIE_SECRET || "supersecret",
+    }
+  },
+  modules:[
+    {
+      resolve: "@medusajs/medusa/payment",
+      options: {
+        providers: [
+          {
+            id: "hyperswitch",
+            resolve: "juspay-hyperswitch/providers/hyperswitch",
+          }
+        ],
+      },
+    },
+  ],
+  plugins: [
+    {
+      resolve: "juspay-hyperswitch",
+      options: {},
+    },
+  ]
+})
+```
+
+### 6. Start and test the integration
+
+```bash
+npm run start
+```
+
+### 7. Configure the payment provider
+
+1. Access the Medusa Admin panel at `http://localhost:9000/app`
+2. Navigate to **Extensions > Hyperswitch**
+3. Configure the HyperSwitch plugin with your API keys from the HyperSwitch dashboard
+4. Create a test product and complete a checkout to verify the payment flow
+
+## Troubleshooting
+
+If you encounter issues during integration:
+
+- Check server logs for payment-related errors
+- Verify webhook configurations in your HyperSwitch dashboard
+- Use HyperSwitch test mode to simulate different payment scenarios
+- Make sure your API keys are correctly configured in the Medusa admin panel
+- Check network requests for any API communication errors
+
+## Resources
+
+- [HyperSwitch Documentation](https://hyperswitch.io/docs)
+- [Plugin GitHub Repository](https://github.com/Ayyanaruto/hyperswitch-medusajs-plugin)
+- [Medusa Documentation](https://docs.medusajs.com/learn/fundamentals/plugins/create)
+- [Open an Issue](https://github.com/Ayyanaruto/hyperswitch-medusajs-plugin/issues)
