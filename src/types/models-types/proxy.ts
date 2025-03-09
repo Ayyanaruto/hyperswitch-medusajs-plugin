@@ -1,4 +1,4 @@
-// import { InferTypeOf } from "@medusajs/framework/types";
-// import Proxy from "../../modules/proxy/models/proxy";
+import { InferTypeOf } from "@medusajs/framework/types";
+import Proxy from "../../modules/proxy/models/proxy";
 
-// export type ProxyType = InferTypeOf<typeof Proxy>;
+export type ProxyType = InferTypeOf<typeof Proxy>;

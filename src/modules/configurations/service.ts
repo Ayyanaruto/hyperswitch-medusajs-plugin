@@ -1,5 +1,5 @@
 import { MedusaService } from "@medusajs/framework/utils";
-import {MedusaError} from "@medusajs/framework/utils";
+import { MedusaError } from "@medusajs/framework/utils";
 
 import { ConfigurationType } from "../../../src/types/models-types";
 import Configuration from "../../../src/modules/configurations/models/configuration";
@@ -11,10 +11,13 @@ const logger = new Logger();
 class ConfigurationService extends MedusaService({
     Configuration,
 }) {
-    
+
     async upsert(data: Configuration): Promise<Configuration> {
         try {
-            //Random key
+            /**
+ * TODO: REMOVE THE CONSTANT KEY AND
+ * REPLACE IT WITH THE ACTUAL ENCRYPTED SECRET KEY
+ */
             const key = "mPFtoTZQbMTSkX5MmXoQ41gdzgM1bFR/3JcoWSGkTjg=";
             const hashedSecretKey = await encryptSecretKey(key, data.secretKey);
             let result: ConfigurationType;
@@ -22,14 +25,14 @@ class ConfigurationService extends MedusaService({
 
             if (existingConfig) {
                 result = await this.updateConfigurations(
-                   {
-                    
-                    ...data,
+                    {
+
+                        ...data,
                         id: existingConfig.id,
-                    secretKey: hashedSecretKey,
-                   }
+                        secretKey: hashedSecretKey,
+                    }
                 );
-               logger.debug("Configuration updated successfully", { result }, "HYPER_SWITCH_CONFIGURATION_DATABASE");
+                logger.debug("Configuration updated successfully", { result }, "HYPER_SWITCH_CONFIGURATION_DATABASE");
             } else {
                 result = await this.createConfigurations({
                     ...data,
@@ -51,19 +54,19 @@ class ConfigurationService extends MedusaService({
         try {
             const configuration = (await this.listConfigurations())[0];
             if (!configuration) {
-            return {
-                id: "",
-                publishableKey: "",
-                secretKey: "",
-                profileId: "",
-                paymentHashKey: "",
-                enableSaveCards: false,
-                environment: "sandbox",
-                captureMethod: "automatic",
-                created_at: new Date(),
-                updated_at: new Date(),
-                deleted_at: new Date(),
-            };
+                return {
+                    id: "",
+                    publishableKey: "",
+                    secretKey: "",
+                    profileId: "",
+                    paymentHashKey: "",
+                    enableSaveCards: false,
+                    environment: "sandbox",
+                    captureMethod: "automatic",
+                    created_at: new Date(),
+                    updated_at: new Date(),
+                    deleted_at: new Date(),
+                };
             }
 
             configuration.secretKey = await decryptSecretKey(configuration.secretKey);

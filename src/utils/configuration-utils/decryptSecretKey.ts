@@ -8,12 +8,16 @@ import { decrypt } from './sub:configuration-utils'
  * @throws {Error} - Throws an error if decryption fails.
  */
 export const decryptSecretKey = async (encryptedKey: string): Promise<string> => {
-  try{
-  const secretKey = JSON.parse(encryptedKey);
+  try {
+    const secretKey = JSON.parse(encryptedKey);
+    /**
+     * TODO: REMOVE THE CONSTANT KEY AND
+     * REPLACE IT WITH THE ACTUAL ENCRYPTED SECRET KEY
+     */
     secretKey.key = "mPFtoTZQbMTSkX5MmXoQ41gdzgM1bFR/3JcoWSGkTjg="
-  return await decrypt(secretKey);
+    return await decrypt(secretKey);
   }
-  catch(e){
+  catch (e) {
     throw new Error("Error in decrypting secret key");
   }
 };

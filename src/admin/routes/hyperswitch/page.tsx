@@ -3,7 +3,7 @@ import { defineRouteConfig } from "@medusajs/admin-sdk";
 import { Heading, Container, Toaster, Tabs } from "@medusajs/ui";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import { ConfigurationForm } from "../../components";
+import { ConfigurationForm,ProxyConfigurationForm } from "../../components";
 import { TabsContainer } from "../../components/re:components";
 import icons from "../../icons";
 
@@ -31,11 +31,11 @@ const HyperswitchPage = () => {
             <ConfigurationForm />
             <Toaster />
           </Tabs.Content>
-          {/* <Tabs.Content value="proxy_configuration">
+           <Tabs.Content value="proxy_configuration">
             <ProxyConfigurationForm />
             <Toaster />
           </Tabs.Content>
-          <Tabs.Content value="customisation">
+          {/*<Tabs.Content value="customisation">
             <Customisation />
             <Toaster />
           </Tabs.Content>
