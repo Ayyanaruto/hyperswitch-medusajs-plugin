@@ -11,9 +11,11 @@ const logger = new Logger();
 class ConfigurationService extends MedusaService({
     Configuration,
 }) {
+    
     async upsert(data: Configuration): Promise<Configuration> {
         try {
-            const key = process.env.HYPERSWITCH_SECRET_KEY as string;
+            //Random key
+            const key = "mPFtoTZQbMTSkX5MmXoQ41gdzgM1bFR/3JcoWSGkTjg=";
             const hashedSecretKey = await encryptSecretKey(key, data.secretKey);
             let result: ConfigurationType;
             const existingConfig = (await this.listConfigurations())[0];

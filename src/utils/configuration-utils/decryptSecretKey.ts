@@ -10,7 +10,7 @@ import { decrypt } from './sub:configuration-utils'
 export const decryptSecretKey = async (encryptedKey: string): Promise<string> => {
   try{
   const secretKey = JSON.parse(encryptedKey);
-  secretKey.key = process.env.HYPERSWITCH_SECRET_KEY;
+    secretKey.key = "mPFtoTZQbMTSkX5MmXoQ41gdzgM1bFR/3JcoWSGkTjg="
   return await decrypt(secretKey);
   }
   catch(e){

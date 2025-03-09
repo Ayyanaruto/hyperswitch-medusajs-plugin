@@ -169,8 +169,9 @@ const ConfigurationForm = () => {
         handleEdit();
       },
       onError(error, _variables, _context) {
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
         toast.error("Error", {
-          description: error.message,
+          description: errorMessage,
         });
       },
     });

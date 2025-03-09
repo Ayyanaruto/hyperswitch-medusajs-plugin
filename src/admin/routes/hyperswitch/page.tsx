@@ -1,8 +1,7 @@
 "use client";
 import { defineRouteConfig } from "@medusajs/admin-sdk";
 import { Heading, Container, Toaster, Tabs } from "@medusajs/ui";
-import { QueryClient } from "@tanstack/react-query";
-import { MedusaProvider } from "medusa-react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { ConfigurationForm } from "../../components";
 import { TabsContainer } from "../../components/re:components";
@@ -19,10 +18,7 @@ const queryClient = new QueryClient({
 
 const HyperswitchPage = () => {
   return (
-    <MedusaProvider
-      queryClientProviderProps={{ client: queryClient }}
-      baseUrl={"http://localhost:9000"}
-    >
+    <QueryClientProvider client={queryClient}>
       <Container>
         <Heading level="h1" className="text-2xl font-semibold">
           Hyperswitch Settings ⚒️
@@ -49,7 +45,7 @@ const HyperswitchPage = () => {
           </Tabs.Content> */}
         </TabsContainer>
       </Container>
-    </MedusaProvider>
+    </QueryClientProvider>
   );
 };
 export const config = defineRouteConfig({
