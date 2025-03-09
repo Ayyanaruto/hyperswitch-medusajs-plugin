@@ -5,7 +5,7 @@ import { handleApiLogs } from "../../utils/logger";
 import { Logger } from "../../utils";
 import { RequestOptions, HyperSwitchResponse } from "../../types/libs-types";
 import { ProxyTypes } from "../../types/components-types";
-// import { HttpsProxyAgent } from "https-proxy-agent";
+import { HttpsProxyAgent } from "https-proxy-agent";
 
 export default class HyperSwitchApiClient {
   private readonly axiosInstance: AxiosInstance;
@@ -57,9 +57,9 @@ export default class HyperSwitchApiClient {
       proxy.username && proxy.password
         ? `${proxy.protocol}://${proxy.username}:${proxy.password}@${proxy.host}:${proxy.port}`
         : `${proxy.protocol}://${proxy.host}:${proxy.port}`;
-    // const agent = new HttpsProxyAgent(proxyUrl);
-    // axiosConfig.proxy = false;
-    // axiosConfig.httpsAgent = agent;
+    const agent = new HttpsProxyAgent(proxyUrl);
+    axiosConfig.proxy = false;
+    axiosConfig.httpsAgent = agent;
 
     this.logger.debug(
       "Configuring Proxy",
@@ -134,14 +134,14 @@ export default class HyperSwitchApiClient {
         headers: error.response?.headers,
         error: error,
       });
-      throw new MedusaError (
+      throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
         "Error from HyperSwitch API",
         error.response?.status?.toString(),
-       JSON.stringify( error.response?.data)
+        JSON.stringify(error.response?.data)
       );
     }
-throw new MedusaError(
+    throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
       "Error from HyperSwitch API",
       "500",
