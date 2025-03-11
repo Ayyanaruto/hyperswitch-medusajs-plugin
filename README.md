@@ -61,8 +61,27 @@ npx medusa plugin:publish
 cd ../medusa-test-store
 npx medusa plugin:add juspay-hyperswitch
 ```
+### 5. Go to `.env` file and add a new variable `HYPERSWITCH_HASH_KEY`
 
-### 5. Configure your Medusa server
+- First, generate a **32-byte key** using either **OpenSSL** or **Node.js**.
+- To generate it on **Mac** or **Linux**, use one of the following commands:
+
+```bash
+openssl rand -base64 32
+```
+
+or
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+- Then, in your `.env` file, create the variable and paste the generated key:
+
+```env
+HYPERSWITCH_HASH_KEY=your-generated-base64-key-here
+```
+### 6. Configure your Medusa server
 
 Update your `medusa-config.ts` file:
 
@@ -99,19 +118,24 @@ module.exports = defineConfig({
   plugins: [
     {
       resolve: "juspay-hyperswitch",
-      options: {},
+      // AES-256-GCM requires a 256-bit (32-byte) base64 key
+      // Generate it using: openssl rand -base64 32 or run node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+      // Store this securely in your environment variables
+      options: {
+        key : process.env.HYPERSWITCH_HASH_KEY,
+      },
     },
   ]
 })
 ```
 
-### 6. Start and test the integration
+### 7. Start and test the integration
 
 ```bash
 npm run start
 ```
 
-### 7. Configure the payment provider
+### 8. Configure the payment provider
 
 1. Access the Medusa Admin panel at `http://localhost:9000/app`
 2. Navigate to **Extensions > Hyperswitch**
@@ -127,7 +151,8 @@ If you encounter issues during integration:
 - Use HyperSwitch test mode to simulate different payment scenarios
 - Make sure your API keys are correctly configured in the Medusa admin panel
 - Check network requests for any API communication errors
-
+##TODO
+- 
 ## Resources
 
 - [HyperSwitch Documentation](https://hyperswitch.io/docs)

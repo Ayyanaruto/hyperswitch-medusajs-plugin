@@ -7,10 +7,19 @@ import { encryptSecretKey, decryptSecretKey, Logger } from "../../../src/utils";
 
 type Configuration = ConfigurationType;
 const logger = new Logger();
-
+type ModuleOptions = {
+    key: string;
+};
 class ConfigurationService extends MedusaService({
     Configuration,
 }) {
+    protected options_: ModuleOptions;
+    constructor({ }, options?: ModuleOptions) {
+        super(...arguments);
+        this.options_ = options || {
+            key:"mPFtoTZQbMTSkX5MmXoQ41gdzgM1bFR/3JcoWSGkTjg="
+        };
+    }
 
     async upsert(data: Configuration): Promise<Configuration> {
         try {
@@ -18,8 +27,8 @@ class ConfigurationService extends MedusaService({
  * TODO: REMOVE THE CONSTANT KEY AND
  * REPLACE IT WITH THE ACTUAL ENCRYPTED SECRET KEY
  */
-            const key = "mPFtoTZQbMTSkX5MmXoQ41gdzgM1bFR/3JcoWSGkTjg=";
-            const hashedSecretKey = await encryptSecretKey(key, data.secretKey);
+            console.log(this.options_.key);
+            const hashedSecretKey = await encryptSecretKey(this.options_.key, data.secretKey);
             let result: ConfigurationType;
             const existingConfig = (await this.listConfigurations())[0];
 
@@ -69,7 +78,7 @@ class ConfigurationService extends MedusaService({
                 };
             }
 
-            configuration.secretKey = await decryptSecretKey(configuration.secretKey);
+            configuration.secretKey = await decryptSecretKey(this.options_.key, configuration.secretKey);
             logger.debug("Configuration extracted successfully", { configuration }, "HYPER_SWITCH_CONFIGURATION_DATABASE");
 
             return configuration;

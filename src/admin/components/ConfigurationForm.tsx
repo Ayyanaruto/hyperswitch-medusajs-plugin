@@ -44,7 +44,7 @@ const FormContent = ({
   errors,
 }: FormContentProps) => (
   <>
-    <FormField label="API Key" error={errors.publishable_key}>
+    <FormField label="Publishable Key" error={errors.publishable_key}>
       <Input
         placeholder="Enter your API Key"
         id="publishable-key"
@@ -55,7 +55,7 @@ const FormContent = ({
       />
     </FormField>
 
-    <FormField label="API Secret" error={errors.secret_key}>
+    <FormField label="API Key" error={errors.secret_key}>
       <Input
         placeholder="Enter your API Secret"
         type="password"

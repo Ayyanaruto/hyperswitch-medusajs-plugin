@@ -7,14 +7,14 @@ import { decrypt } from './sub:configuration-utils'
  * @returns {Promise<string>} - A promise that resolves to the decrypted secret key.
  * @throws {Error} - Throws an error if decryption fails.
  */
-export const decryptSecretKey = async (encryptedKey: string): Promise<string> => {
+export const decryptSecretKey = async (key:string,encryptedKey: string): Promise<string> => {
   try {
     const secretKey = JSON.parse(encryptedKey);
     /**
      * TODO: REMOVE THE CONSTANT KEY AND
      * REPLACE IT WITH THE ACTUAL ENCRYPTED SECRET KEY
      */
-    secretKey.key = "mPFtoTZQbMTSkX5MmXoQ41gdzgM1bFR/3JcoWSGkTjg="
+    secretKey.key = key || "mPFtoTZQbMTSkX5MmXoQ41gdzgM1bFR/3JcoWSGkTjg=";
     return await decrypt(secretKey);
   }
   catch (e) {
