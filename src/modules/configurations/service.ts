@@ -27,7 +27,6 @@ class ConfigurationService extends MedusaService({
  * TODO: REMOVE THE CONSTANT KEY AND
  * REPLACE IT WITH THE ACTUAL ENCRYPTED SECRET KEY
  */
-            console.log(this.options_.key);
             const hashedSecretKey = await encryptSecretKey(this.options_.key, data.secretKey);
             let result: ConfigurationType;
             const existingConfig = (await this.listConfigurations())[0];
