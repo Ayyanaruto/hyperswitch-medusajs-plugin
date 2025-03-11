@@ -36,7 +36,7 @@ npx create-medusa-app@v2.4.0 medusa-test-store
 cd medusa-test-store
 ```
 
-> **Note**: This plugin has been verified with Medusa v2.4.0. Using other versions may require additional configuration.
+> **Note**: This plugin has been verified with Medusa v2
 
 ### 2. Install required dependencies
 
