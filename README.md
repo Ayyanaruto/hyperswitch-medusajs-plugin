@@ -32,7 +32,7 @@ Follow these steps to integrate and test the plugin in your local environment:
 ### 1. Create a Medusa store
 
 ```bash
-npx create-medusa-app@v2.4.0 medusa-test-store
+npx create-medusa-app medusa-test-store
 cd medusa-test-store
 ```
 
