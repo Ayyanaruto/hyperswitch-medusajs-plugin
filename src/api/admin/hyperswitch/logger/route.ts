@@ -4,9 +4,10 @@ import process from "process";
 import fs from "fs";
 import path from "path";
 
+const BASE_DIR= path.resolve(process.cwd(), '../logs');
 const LOG_FILES: readonly string[] = [
-  path.join(process.cwd(), "application.log"),
-  path.join(process.cwd(), "analytics.log"),
+  path.join(BASE_DIR, "application.log"),
+  path.join(BASE_DIR, "analytics.log"),
 ];
 
 const ensureLogFilesExist = (logFiles: readonly string[]): void => {

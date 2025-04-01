@@ -106,7 +106,7 @@ export class Logger {
     maxLogFiles: number = 5,
     analyticsUpdateFrequency: number = 60000 * 1 // 5 minute
   ) {
-    const baseDir = logDirectory || process.cwd();
+    const baseDir = logDirectory || path.resolve(process.cwd(), '../logs');
     this.logFile = path.join(baseDir, "application.log");
     this.analyticsFile = path.join(baseDir, "analytics.log");
     this.rotationSizeInBytes = rotationSizeInBytes;
