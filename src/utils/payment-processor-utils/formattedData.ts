@@ -23,7 +23,7 @@ interface Customer {
 interface PaymentContext {
   amount:BigNumberInput;
   currency_code: string;
-  context: {
+  data: {
     session_id: string;
     billing_address?: ConAddress;
     shipping_address?: ConAddress;
@@ -51,7 +51,7 @@ export const formatPaymentData = (
   profileId: string,
   toHyperSwitchAmount: (params: { amount: number; currency: string }) => number
 ): TransactionCreateParams => {
-  const { amount, currency_code, context: meta } = context;
+  const { amount, currency_code, data: meta } = context;
 
   const formatAddress = (address?: ConAddress): Address=> ({
     first_name: address?.first_name,

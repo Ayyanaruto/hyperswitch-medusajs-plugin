@@ -31,7 +31,7 @@ const calculateTotalRefund = (
   );
 };
 
-type RefundStatus = "pending" | "partial_success" | "full_success" | "failed";
+type RefundStatus = "no_refund" | "pending" | "partial_success" | "full_success" | "failed";
 
 const getRefundStatus = (
   paymentStatus: string,
@@ -39,6 +39,11 @@ const getRefundStatus = (
   total: number,
   summary: any
 ): RefundStatus => {
+  // Check if no refund has been made
+  if (totalRefunded === 0 && !["refunded", "partially_refunded"].includes(paymentStatus)) {
+    return "no_refund";
+  }
+  
   // Refined status determination logic
   if (!["refunded", "partially_refunded"].includes(paymentStatus)) {
     return "pending";
@@ -68,6 +73,12 @@ const REFUND_STATUS_CONFIG: Record<
     message: (amount: number) => string;
   }
 > = {
+  no_refund: {
+    label: "No Refund",
+    color: "grey",
+    icon: CreditCard,
+    message: () => "No refunds have been made for this order.",
+  },
   pending: {
     label: "Refund Pending",
     color: "grey",
@@ -184,7 +195,8 @@ const RefundStatusWidget: React.FC<
           <statusConfig.icon
             size={24}
             className={`
-              ${refundStatus === "failed" ? "text-red-500" : "text-blue-500"}
+              ${refundStatus === "failed" ? "text-red-500" : 
+                refundStatus === "no_refund" ? "text-gray-500" : "text-blue-500"}
             `}
           />
           <Text

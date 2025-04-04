@@ -7,4 +7,5 @@ import { formatPaymentData } from "./payment-processor-utils/formattedData";
 import { mapProcessorStatusToPaymentStatus } from "./payment-processor-utils/mapProcessorStatustoPaymentStatus";
 import { filterNull } from "./payment-processor-utils/filterNull";
 import {validateWebhook} from "./payment-processor-utils/validateWebhook";
-export {encryptSecretKey,decryptSecretKey,Logger,toHyperSwitchAmount,fromHyperSwitchAmount,canCancelPayment,formatPaymentData,mapProcessorStatusToPaymentStatus,filterNull,validateWebhook };
+import { extractPaymentData } from "./payment-processor-utils/extractPaymentData";
+export {encryptSecretKey,decryptSecretKey,Logger,toHyperSwitchAmount,fromHyperSwitchAmount,canCancelPayment,formatPaymentData,mapProcessorStatusToPaymentStatus,filterNull,validateWebhook,extractPaymentData };

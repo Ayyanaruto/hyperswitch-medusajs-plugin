@@ -24,31 +24,38 @@ import {
   filterNull,
   fromHyperSwitchAmount,
   validateWebhook,
+  extractPaymentData
 } from "../../utils";
 import { CreatePaymentProviderSession } from "../../types/payment-processor-types";
 import {
   ProviderWebhookPayload,
   WebhookActionResult,
 } from "@medusajs/framework/types";
-
 class HyperswitchPaymentProvider extends AbstractPaymentProvider {
   static identifier: string = "hyperswitch";
 
-  private hyperswitch: HyperSwitch;
-  private captureMethod: "manual" | "automatic";
-  private setupFutureUsage: boolean;
-  private paymentResponseHashKey: string;
-  private profileId: string;
-  private theme: string;
-  private styles: Record<string, unknown>;
+  private hyperswitch!: HyperSwitch;
+  private captureMethod!: "manual" | "automatic";
+  private setupFutureUsage!: boolean;
+  private paymentResponseHashKey!: string;
+  private profileId!: string;
+  private theme!: string;
+  private styles!: Record<string, unknown>;
   protected logger: Logger;
+  private initialized = false;
 
   constructor(container: MedusaContainer) {
     super(container);
     this.logger = new Logger();
   }
 
+  /**
+   * Initializes the Hyperswitch client with configuration and proxy settings.
+   * This method is called before any payment operations are performed.
+   * It fetches the configuration and proxy settings using the respective workflows.
+   */
   private async initializeHyperswitch(): Promise<void> {
+
     try {
       const { result: configResult } = await configWorkflow().run();
       const { result: proxyResult } = await proxyWorkflow().run();
@@ -66,23 +73,53 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       this.theme = customResult.theme;
       this.styles = customResult.styles;
 
-      this.logger.info("Hyperswitch initialized successfully", {
-        ...configResult,
-        ...proxyResult,
-        ...customResult,
-      }, "HYPERSWITCH_INIT_SUCCESS");
-    } catch (e) {
+      this.logger.info("Hyperswitch initialized successfully", 
+        { environment: configResult.environment },
+        "HYPERSWITCH_INIT_SUCCESS"
+      );
+    } catch (error) {
       this.logger.error(
         "Error in initializing Hyperswitch",
-        e,
+        error,
         "HYPERSWITCH_INIT_ERROR"
       );
       throw new MedusaError(
         MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
-        "Error in initializing Hyperswitch",
+        "Failed to initialize payment provider",
         "500"
       );
     }
+  }
+
+  /**
+   * Common error handler for payment operations
+   */
+  private handleError(message: string, error: unknown, code: string): never {
+    this.logger.error(message, error, code);
+    throw new MedusaError(
+      MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
+      message,
+      "500"
+    );
+  }
+
+  /**
+   * Formats response data consistently
+   */
+  private formatResponseData(
+    responseData: any,
+    additionalData: Record<string, unknown> = {}
+  ): Record<string, unknown> {
+    return {
+      client_secret: responseData.client_secret,
+      amount: responseData.amount,
+      currency: responseData.currency,
+      status: responseData.status,
+      payment_id: responseData.payment_id,
+      theme: this.theme,
+      styles: this.styles,
+      ...additionalData
+    };
   }
 
   async initiatePayment(
@@ -90,92 +127,72 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
   ): Promise<PaymentProviderError | PaymentProviderSessionResponse> {
     try {
       await this.initializeHyperswitch();
+      
       const formattedData = formatPaymentData(
-        context as any,
+        context,
         this.setupFutureUsage,
         this.captureMethod,
         this.profileId,
         toHyperSwitchAmount
       );
-      const response = await this.hyperswitch.transactions.create(
-        formattedData
-      );
+      
+      const response = await this.hyperswitch.transactions.create(formattedData);
+      
       return {
-        data: {
-          client_secret: response.data.client_secret,
-          amount: response.data.amount,
-          currency: response.data.currency,
-          status: response.data.status,
-          payment_id: response.data.payment_id,
-          theme: this.theme,
-          styles: this.styles,
-        },
+        data: this.formatResponseData(response.data)
       };
-    } catch (e) {
-      this.logger.error(
+    } catch (error) {
+      return this.handleError(
         "Error in initiating payment",
-        e,
+        error,
         "HYPERSWITCH_INITIATE_PAYMENT_ERROR"
-      );
-      throw new MedusaError(
-        MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
-        "Error in initiating payment",
-        "500"
       );
     }
   }
-  async updatePayment(context: UpdatePaymentProviderSession): Promise<PaymentProviderError | PaymentProviderSessionResponse> {
+
+  async updatePayment(
+    context: any
+  ): Promise<PaymentProviderError | PaymentProviderSessionResponse> {
     try {
       await this.initializeHyperswitch();
+      
       const formattedData = formatPaymentData(
-        context as any,
+        context,
         this.setupFutureUsage,
         this.captureMethod,
         this.profileId,
         toHyperSwitchAmount
       );
+      
       const response = await this.hyperswitch.transactions.update(
-      formattedData as any
+        formattedData as any
       );
+      
       return {
-        data: {
-          client_secret: response.data.client_secret,
-          amount: response.data.amount,
-          currency: response.data.currency,
-          status: response.data.status,
-          payment_id: response.data.payment_id,
-          theme: this.theme,
-          styles: this.styles,
-        },
+        data: this.formatResponseData(response.data)
       };
-    } catch (e) {
-      this.logger.error(
+    } catch (error) {
+      return this.handleError(
         "Error in updating payment",
-        e,
+        error,
         "HYPERSWITCH_UPDATE_PAYMENT_ERROR"
       );
-      throw new MedusaError(
-        MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
-        "Error in updating payment",
-        "500"
-      );
     }
-
-
-
   }
 
   async deletePayment(
     paymentSessionData: Record<string, unknown>
   ): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
     try {
-      const { payment_id } = paymentSessionData;
+      const { payment_id } = extractPaymentData(paymentSessionData, ['payment_id']);
+      
       if (!payment_id) {
         return {
           status: PaymentSession.CANCELED,
           data: {},
         };
       }
+      
       await this.initializeHyperswitch();
       const currentStatus = await this.hyperswitch.transactions.fetch({
         payment_id: payment_id as string,
@@ -184,13 +201,13 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       if (!canCancelPayment(currentStatus.data)) {
         this.logger.error(
           "Payment cannot be deleted",
-          "400",
+          { status: currentStatus.data.status },
           "HYPERSWITCH_DELETE_PAYMENT_ERROR"
         );
         throw new MedusaError(
           MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
-          "Payment cannot be deleted",
-          "500"
+          "Payment cannot be canceled in its current state",
+          "400"
         );
       }
 
@@ -203,16 +220,11 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
         status: PaymentSession.CANCELED,
         data: {},
       };
-    } catch (e) {
-      this.logger.error(
+    } catch (error) {
+      return this.handleError(
         "Error in deleting payment",
-        e,
+        error,
         "HYPERSWITCH_DELETE_PAYMENT_ERROR"
-      );
-      throw new MedusaError(
-        MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
-        "Error in deleting payment",
-        "500"
       );
     }
   }
@@ -230,22 +242,18 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
     try {
       const status = await this.getPaymentStatus(paymentSessionData);
       const paymentSession = filterNull(paymentSessionData);
+      
       return {
         status,
         data: {
           ...paymentSession,
         },
       };
-    } catch (e) {
-      this.logger.error(
+    } catch (error) {
+      return this.handleError(
         "Error in authorizing payment",
-        e,
+        error,
         "HYPERSWITCH_AUTHORIZE_PAYMENT_ERROR"
-      );
-      throw new MedusaError(
-        MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
-        "Error in authorizing payment",
-        "500"
       );
     }
   }
@@ -254,65 +262,66 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
     paymentData: Record<string, unknown>
   ): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
     try {
-      const { payment_id } = paymentData as { payment_id: string };
-      const amount = paymentData.amount as number;
+      const { payment_id, amount } = extractPaymentData(paymentData, ['amount', 'payment_id']);
+      
       await this.initializeHyperswitch();
       const currentStatus = await this.getPaymentStatus(paymentData);
+
+      // Only capture if not already captured
       if (currentStatus !== PaymentSession.CAPTURED) {
-        const { data } = await this.hyperswitch.transactions.capture({
+        const { data: responseData } = await this.hyperswitch.transactions.capture({
           payment_id: payment_id as string,
-          amount_to_capture: amount,
+          amount_to_capture: amount as number,
         });
-        const filteredData = filterNull(data);
+
+        this.logger.info(
+          "Payment captured successfully",
+          { payment_id, amount },
+          "HYPERSWITCH_CAPTURE_SUCCESS"
+        );
+
         return {
           status: PaymentSession.CAPTURED,
-          data: {
-            ...filteredData,
-          },
-        };
-      } else {
-        return {
-          status: PaymentSession.CAPTURED,
-          data: {
-            ...paymentData,
-          },
+          data: filterNull(responseData),
         };
       }
-    } catch (e) {
-      this.logger.error(
+
+      return {
+        status: PaymentSession.CAPTURED,
+        data: paymentData,
+      };
+    } catch (error) {
+      return this.handleError(
         "Error in capturing payment",
-        e,
+        error,
         "HYPERSWITCH_CAPTURE_PAYMENT_ERROR"
-      );
-      throw new MedusaError(
-        MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
-        "Error in capturing payment",
-        "500"
       );
     }
   }
-async cancelPayment(paymentData: Record<string, unknown>): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
+
+  async cancelPayment(
+    paymentData: Record<string, unknown>
+  ): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
     try {
-      const data  = await this.deletePayment(paymentData);
+      const data = await this.deletePayment(paymentData);
       return {
-     ...data,
+        ...data,
       };
-    } catch (e) {
-      this.logger.error(
+    } catch (error) {
+      return this.handleError(
         "Error in canceling payment",
-        e,
+        error,
         "HYPERSWITCH_CANCEL_PAYMENT_ERROR"
       );
-      throw new MedusaError(
-        MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
-        "Error in canceling payment",
-        "500"
-      );
-}
-}
-async retrievePayment(paymentSessionData: Record<string, unknown>): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
+    }
+  }
+
+  async retrievePayment(
+    paymentSessionData: Record<string, unknown>
+  ): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
     try {
-      const { payment_id } = paymentSessionData;
+      const { payment_id } = extractPaymentData(paymentSessionData, ['payment_id']);
+      
       if (!payment_id) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
@@ -320,79 +329,81 @@ async retrievePayment(paymentSessionData: Record<string, unknown>): Promise<Paym
           "400"
         );
       }
+      
       await this.initializeHyperswitch();
       const { data } = await this.hyperswitch.transactions.fetch({
         payment_id: payment_id as string,
       });
+      
       return {
         data: {
           ...paymentSessionData,
           ...data,
         },
       };
-    } catch (e) {
-      this.logger.error(
+    } catch (error) {
+      return this.handleError(
         "Error in retrieving payment",
-        e,
+        error,
         "HYPERSWITCH_RETRIEVE_PAYMENT_ERROR"
       );
-      throw new MedusaError(
-        MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
-        "Error in retrieving payment",
-        "500"
-      );
     }
-}
+  }
+
   async refundPayment(
     paymentData: Record<string, unknown>,
     refundAmount: number
   ): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
     try {
-      const { payment_id, amount, currency,metadata } = paymentData.data as {
-        payment_id: string;
-        amount: number;
-        currency: string;
-        metadata: {
-          session_id: string;
-        }
-      };
+      const { payment_id, amount, currency, metadata } = extractPaymentData(
+        paymentData, 
+        ['payment_id', 'amount', 'currency', 'metadata']
+      );
+      
       const refAmount = toHyperSwitchAmount({
-        //@ts-ignore
-        amount: refundAmount.value,
-        currency: currency,
+        amount: refundAmount.toString(),
+        currency: currency as string,
       });
-      if (refundAmount > amount) {
+      
+      if (refundAmount > (amount as number)) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
           "Refund amount cannot be greater than the payment amount",
           "400"
         );
       }
+      
       await this.initializeHyperswitch();
-      const { data } = await this.hyperswitch.transactions.refund({
+      const { data: api_data } = await this.hyperswitch.transactions.refund({
         payment_id: payment_id as string,
         reason: "requested_by_customer",
-        //@ts-ignore
         amount: refAmount,
-        metadata:{
-          session_id: metadata.session_id
+        metadata: {
+          session_id: metadata && (metadata as Record<string, unknown>).session_id
         }
       });
+      
+      this.logger.info(
+        "Payment refunded successfully",
+        { payment_id, refundAmount },
+        "HYPERSWITCH_REFUND_SUCCESS"
+      );
+      
       return {
         data: {
           ...paymentData,
-          ...data,
+          ...api_data,
         },
       };
-    } catch (e) {
+    } catch (error) {
       this.logger.error(
         "Error in refunding payment",
-        e,
+        error,
         "HYPERSWITCH_REFUND_PAYMENT_ERROR"
       );
       throw new MedusaError(
         MedusaError.Types.PAYMENT_REQUIRES_MORE_ERROR,
-        "Error in refunding payment",
+        "Failed to process refund",
         "500"
       );
     }
@@ -402,7 +413,8 @@ async retrievePayment(paymentSessionData: Record<string, unknown>): Promise<Paym
     paymentSessionData: Record<string, unknown>
   ): Promise<PaymentSessionStatus> {
     try {
-      const { payment_id } = paymentSessionData;
+      const { payment_id } = extractPaymentData(paymentSessionData, ['payment_id']);
+
       if (!payment_id) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
@@ -410,21 +422,18 @@ async retrievePayment(paymentSessionData: Record<string, unknown>): Promise<Paym
           "400"
         );
       }
+
       await this.initializeHyperswitch();
-      const { data } = await this.hyperswitch.transactions.fetch({
+      const { data: paymentData } = await this.hyperswitch.transactions.fetch({
         payment_id: payment_id as string,
       });
-      return mapProcessorStatusToPaymentStatus(data.status as any);
-    } catch (e) {
-      this.logger.error(
+      
+      return mapProcessorStatusToPaymentStatus(paymentData.status as any);
+    } catch (error) {
+      return this.handleError(
         "Error in getting payment status",
-        e,
+        error,
         "HYPERSWITCH_GET_PAYMENT_STATUS_ERROR"
-      );
-      throw new MedusaError(
-        MedusaError.Types.PAYMENT_AUTHORIZATION_ERROR,
-        "Error in getting payment status",
-        "500"
       );
     }
   }
@@ -432,18 +441,22 @@ async retrievePayment(paymentSessionData: Record<string, unknown>): Promise<Paym
   async getWebhookActionAndData(
     payload: ProviderWebhookPayload["payload"]
   ): Promise<WebhookActionResult> {
-    //Delay the webhook
+    // Delay the webhook processing for better reliability
     await new Promise((resolve) => setTimeout(resolve, 5000));
+    
     const { data, rawData, headers } = payload;
+    
     if (!validateWebhook(this.paymentResponseHashKey, rawData, headers)) {
       this.logger.error(
         "Invalid webhook signature",
+        { headers },
         "HYPERSWITCH_WEBHOOK_ERROR"
       );
       return {
         action: PaymentActions.FAILED,
       };
     }
+    
     try {
       const { event_type, content } = data;
       const { metadata, amount, currency } = (
@@ -451,110 +464,84 @@ async retrievePayment(paymentSessionData: Record<string, unknown>): Promise<Paym
           object: { metadata: any; amount: number; currency: string };
         }
       ).object;
-      const session_id = metadata.session_id;
-   let amountBigNumber = new BigNumber(
-        fromHyperSwitchAmount({ amount: amount, currency: currency })
+      
+      const session_id = metadata?.session_id;
+      if (!session_id) {
+        this.logger.warn(
+          "Missing session ID in webhook",
+          { event_type },
+          "HYPERSWITCH_WEBHOOK_WARNING"
+        );
+      }
+      
+      const amountBigNumber = new BigNumber(
+        fromHyperSwitchAmount({ amount, currency })
+      );
+
+      this.logger.info(
+        `Processing webhook: ${event_type}`,
+        { session_id, amount: amountBigNumber.toString() },
+        "HYPERSWITCH_WEBHOOK"
       );
 
       switch (event_type) {
         case "payment_authorized":
-          this.logger.info(
-            "Payment Authorized",
-            {
-              session_id,
-              amount: amountBigNumber,
-            },
-            "HYPERSWITCH_WEBHOOK"
-          );
           return {
             action: PaymentActions.AUTHORIZED,
-            data: {
-              session_id,
-              amount: amountBigNumber,
-            },
+            data: { session_id, amount: amountBigNumber },
           };
         case "payment_succeeded":
           return {
             action: PaymentActions.SUCCESSFUL,
-            data: {
-              session_id,
-              amount: amountBigNumber,
-            },
+            data: { session_id, amount: amountBigNumber },
           };
         case "payment_failed":
-          this.logger.info(
-            "Payment Failed",
-            {
-              session_id,
-              amount: amountBigNumber,
-            },
-            "HYPERSWITCH_WEBHOOK"
-          );
           return {
             action: PaymentActions.FAILED,
-            data: {
-              session_id,
-              amount: amountBigNumber,
-            },
+            data: { session_id, amount: amountBigNumber },
           };
         case "refund_succeeded":
-          this.logger.info(
-            "Refund Succeeded",
-            {
-              session_id,
-              amount: amountBigNumber,
-            },
-            "HYPERSWITCH_WEBHOOK"
-          );
           return {
             action: PaymentActions.SUCCESSFUL,
-            data: {
-              session_id,
-              amount: 0,
-            },
+            data: { session_id, amount: new BigNumber(0) },
           };
         case "refund_failed":
-          this.logger.warn(
-            "Refund Failed",
-            {
-              session_id,
-              amount: amountBigNumber,
-            },
-            "HYPERSWITCH_WEBHOOK"
-          );
           return {
             action: PaymentActions.SUCCESSFUL,
-            data: {
-              session_id,
-              amount: amountBigNumber,
-            },
+            data: { session_id, amount: amountBigNumber },
           };
         default:
           this.logger.warn(
-            "Webhook event not supported",
-            "HYPERSWITCH_WEBHOOK_ERROR"
+            "Unsupported webhook event",
+            { event_type },
+            "HYPERSWITCH_WEBHOOK_WARNING"
           );
-          return {
-            action: PaymentActions.NOT_SUPPORTED,
-          };
+          return { action: PaymentActions.NOT_SUPPORTED };
       }
-    } catch (e) {
+    } catch (error) {
       this.logger.error(
-        "Error in getting webhook action and data",
-        e,
+        "Error processing webhook",
+        error,
         "HYPERSWITCH_WEBHOOK_ERROR"
       );
-      return {
-        action: PaymentActions.FAILED,
-        data: {
-          session_id: (
-            data.content as { object: { metadata: { session_id: string } } }
-          ).object.metadata.session_id,
-          amount: new BigNumber(
-            (data.content as { object: { amount: number } }).object.amount
-          ),
-        },
-      };
+      
+      // Best-effort to extract session_id even in error case
+      try {
+        const session_id = (
+          data.content as { object: { metadata: { session_id: string } } }
+        ).object.metadata.session_id;
+        
+        const webhookAmount = new BigNumber(
+          (data.content as { object: { amount: number } }).object.amount
+        );
+        
+        return {
+          action: PaymentActions.FAILED,
+          data: { session_id, amount: webhookAmount },
+        };
+      } catch {
+        return { action: PaymentActions.FAILED };
+      }
     }
   }
 }
