@@ -123,6 +123,7 @@ export class Logger {
         "payment_hash_key",
         "api_key",
         "client_secret",
+        "api-key"
       ],
       encryption: [
         "encryption_key",
