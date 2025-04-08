@@ -35,6 +35,5 @@ export function extractPaymentData<T extends Record<string, any>>(
             );
         }
     }
-
     return data;
 }

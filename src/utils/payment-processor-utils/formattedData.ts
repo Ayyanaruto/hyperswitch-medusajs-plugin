@@ -59,7 +59,8 @@ export const formatPaymentData = (
     city: address?.city,
     country: address?.country_code?.toUpperCase(),
     line1: address?.address_1,
-    line2: address?.address_2,
+    // line2: address?.address_2,
+    line2: address?.address_1,
     zip: address?.postal_code,
     state: address?.province,
   });
@@ -70,6 +71,7 @@ export const formatPaymentData = (
       : `${meta.shipping_address?.first_name} ${meta.shipping_address?.last_name}`;
 console.log("captureMethod",captureMethod);
   return {
+    authentication_type: "three_ds",
     amount: toHyperSwitchAmount({ amount: Number(amount), currency: currency_code }),
     currency: currency_code.toUpperCase(),
     setup_future_usage: setupFutureUsage ? "on_session" : "off_session",
@@ -78,6 +80,11 @@ console.log("captureMethod",captureMethod);
     profile_id: profileId,
     billing: {
       address: formatAddress(meta?.billing_address),
+      // address: formatAddress(meta?.shipping_address),
+      phone: {
+        number: meta?.shipping_address?.phone || '',
+      },
+      email: meta?.customer?.email || '',
     },
     shipping: {
       address: formatAddress(meta?.shipping_address),

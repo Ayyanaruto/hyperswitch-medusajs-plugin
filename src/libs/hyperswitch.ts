@@ -97,7 +97,7 @@ class HyperSwitchTransactions {
         payment_id: params.payment_id,
         amount: params.amount,
         reason: params.reason,
-        metadata: params.metadata,
+        // metadata: params.metadata,
       },
     });
   }

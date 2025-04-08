@@ -43,6 +43,7 @@ interface Customer {
   name?: string;
 }
 export interface TransactionCreateParams {
+  authentication_type: string;
   amount: BigNumberInput;
   currency: string;
   capture_method: "manual" | "automatic";
@@ -51,10 +52,14 @@ export interface TransactionCreateParams {
   setup_future_usage?: string;
   description?: string;
   billing: {
-    address: Address
+    address: Address;
+    phone:{
+      number: string;
+    },
+    email: string;
   };
   shipping: {
-    address: Address
+    address: Address;
     phone:{
       number: string;
     },

@@ -59,7 +59,6 @@ const getRefundStatus = (
       summary?.pending_difference;
     return isPendingDifferenceMatching ? "failed" : "partial_success";
   }
-
   return "pending";
 };
 
@@ -112,7 +111,7 @@ const RefundStatusWidget: React.FC<
       payment_collections: PaymentCollection[];
     }
   >
-> = ({ data }) => {
+> = ({ data }) => {       
   // Calculate refund details
   const totalRefundedAmount = calculateTotalRefund(data.payment_collections);
   const refundStatus = getRefundStatus(

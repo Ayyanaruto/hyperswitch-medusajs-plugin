@@ -135,7 +135,8 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
         this.profileId,
         toHyperSwitchAmount
       );
-      
+      formattedData.authentication_type="three_ds";
+      //done temporarily to test 3ds payments always
       const response = await this.hyperswitch.transactions.create(formattedData);
       
       return {
@@ -355,33 +356,45 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
     refundAmount: number
   ): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
     try {
-      const { payment_id, amount, currency, metadata } = extractPaymentData(
+      const { payment_id, amount, currency } = extractPaymentData(
         paymentData, 
-        ['payment_id', 'amount', 'currency', 'metadata']
+        // ['payment_id', 'amount', 'currency', 'metadata']
+        ['payment_id', 'amount', 'currency']
       );
       
-      const refAmount = toHyperSwitchAmount({
-        amount: refundAmount.toString(),
-        currency: currency as string,
-      });
+      // const refAmount = toHyperSwitchAmount({
+      //   amount: amount.toString(),
+      //   currency: currency as string,
+      // });
+
+      const refAmount: number=amount;
       
-      if (refundAmount > (amount as number)) {
+      if (refAmount > (amount as number)) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
           "Refund amount cannot be greater than the payment amount",
           "400"
         );
       }
-      
       await this.initializeHyperswitch();
       const { data: api_data } = await this.hyperswitch.transactions.refund({
         payment_id: payment_id as string,
         reason: "requested_by_customer",
         amount: refAmount,
-        metadata: {
-          session_id: metadata && (metadata as Record<string, unknown>).session_id
-        }
+        // metadata: {
+        //   session_id: metadata && (metadata as Record<string, unknown>).session_id
+        // }
       });
+      // api_data.status="failed";
+
+
+      // if (api_data.status !== "succeeded") {
+      //   throw new MedusaError(
+      //     MedusaError.Types.PAYMENT_REQUIRES_MORE_ERROR,
+      //     "Failed to process refund",
+      //     "500"
+      //   );
+      // }
       
       this.logger.info(
         "Payment refunded successfully",
