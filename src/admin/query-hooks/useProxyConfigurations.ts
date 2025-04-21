@@ -16,7 +16,6 @@ export const useProxyConfiguration = () => {
     queryFn: fetchProxyConfiguration,
   });
   
-  console.log(data);
   
   useEffect(() => {
     if (isError) {

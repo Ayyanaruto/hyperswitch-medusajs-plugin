@@ -57,7 +57,6 @@ export const POST = async (
   const data = req.body;
   try {
     const start = Date.now();
-    console.log("data", data);
     const proxy = await proxyService.upsert(data as ProxyType);
     const end = Date.now();
 

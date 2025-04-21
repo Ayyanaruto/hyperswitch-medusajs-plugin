@@ -68,7 +68,6 @@ export const formatPaymentData = (
     meta?.customer?.first_name && meta?.customer?.last_name
       ? `${meta.customer.last_name} ${meta.customer.first_name}`
       : `${meta.shipping_address?.first_name} ${meta.shipping_address?.last_name}`;
-console.log("captureMethod",captureMethod);
   return {
     amount: toHyperSwitchAmount({ amount: Number(amount), currency: currency_code }),
     currency: currency_code.toUpperCase(),

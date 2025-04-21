@@ -53,7 +53,6 @@ if(isSuccess&& data?.proxy){
 Object.keys(data.proxy).forEach((key) => {
   const setterName = `setProxy${key.charAt(0).toUpperCase() + key.slice(1)}`;
   if (formSetters[setterName as keyof typeof formSetters]) {
-    console.log(key);
     (formSetters[setterName as keyof typeof formSetters] as (value: any) => void)(data.proxy[key]);
   }
 });

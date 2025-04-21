@@ -45,8 +45,6 @@ export function toHyperSwitchAmount({
   currency,
 }: HyperSwitchAmountOptions): number {
   // Validate currency
-  console.log(currency)
-  console.log(isValidCurrency(currency as string))
   if (!isValidCurrency(currency as string)) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
