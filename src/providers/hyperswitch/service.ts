@@ -118,6 +118,7 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       payment_id: responseData.payment_id,
       theme: this.theme,
       styles: this.styles,
+      metadata: responseData.metadata,
       ...additionalData
     };
   }
@@ -240,14 +241,32 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       }
   > {
     try {
+      await this.initializeHyperswitch();
+      
+      const { payment_id } = extractPaymentData(paymentSessionData, ['payment_id']);
+      
+      if (!payment_id) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Payment ID is required to authorize payment",
+        "400"
+      );
+      }
+      
       const status = await this.getPaymentStatus(paymentSessionData);
-      const paymentSession = filterNull(paymentSessionData);
+      
+      this.logger.info(
+      "Payment authorization status checked",
+      { payment_id, status },
+      "HYPERSWITCH_AUTHORIZE_STATUS"
+      );
       
       return {
+      status,
+      data: {
+        ...filterNull(paymentSessionData),
         status,
-        data: {
-          ...paymentSession,
-        },
+      },
       };
     } catch (error) {
       return this.handleError(
@@ -352,7 +371,7 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
 
   async refundPayment(
     paymentData: Record<string, unknown>,
-    refundAmount: number
+    refundAmount?: number
   ): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
     try {
       const { payment_id, amount, currency, metadata } = extractPaymentData(
@@ -360,17 +379,25 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
         ['payment_id', 'amount', 'currency', 'metadata']
       );
       
-      const refAmount = toHyperSwitchAmount({
-        amount: refundAmount.toString(),
-        currency: currency as string,
-      });
+      let refAmount: number;
       
-      if (refundAmount > (amount as number)) {
-        throw new MedusaError(
-          MedusaError.Types.INVALID_DATA,
-          "Refund amount cannot be greater than the payment amount",
-          "400"
-        );
+      if (!refundAmount) {
+        // If no refund amount is provided, use the full amount
+        refAmount = amount as number;
+      } else {
+        // Only convert refundAmount if it's explicitly provided
+        refAmount = toHyperSwitchAmount({
+          amount: refundAmount.toString(),
+          currency: currency as string,
+        });
+        
+        if (refundAmount > (amount as number)) {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            "Refund amount cannot be greater than the payment amount",
+            "400"
+          );
+        }
       }
       
       await this.initializeHyperswitch();
@@ -385,7 +412,7 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       
       this.logger.info(
         "Payment refunded successfully",
-        { payment_id, refundAmount },
+        { payment_id, refundAmount: refundAmount || amount },
         "HYPERSWITCH_REFUND_SUCCESS"
       );
       
@@ -445,7 +472,6 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
     await new Promise((resolve) => setTimeout(resolve, 5000));
     
     const { data, rawData, headers } = payload;
-    
     if (!validateWebhook(this.paymentResponseHashKey, rawData, headers)) {
       this.logger.error(
         "Invalid webhook signature",
@@ -464,7 +490,6 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
           object: { metadata: any; amount: number; currency: string };
         }
       ).object;
-      
       const session_id = metadata?.session_id;
       if (!session_id) {
         this.logger.warn(

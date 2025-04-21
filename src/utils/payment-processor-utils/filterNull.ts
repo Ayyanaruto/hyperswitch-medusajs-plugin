@@ -1,4 +1,4 @@
-export const filterNull = (value: Object) => {
+export const filterNull = (value: Object):any => {
   for (let key in value) {
     if (value[key] === null) {
       delete value[key];
