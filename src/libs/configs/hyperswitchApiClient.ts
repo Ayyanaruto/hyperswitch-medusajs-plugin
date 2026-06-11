@@ -13,6 +13,7 @@ export default class HyperSwitchApiClient {
   public readonly proxy: ProxyTypes | undefined;
 
   constructor(apiKey: string, environment: string, proxy?: ProxyTypes) {
+    this.logger = new Logger();
     this.proxy = proxy;
     const HYPERSWITCH_API_PATH =
       environment === "production"

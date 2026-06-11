@@ -1,7 +1,7 @@
 import { MedusaError } from "@medusajs/framework/utils";
 
 export function extractPaymentData<T extends Record<string, any>>(
-    paymentData: Record<string, unknown>,
+    paymentData: { data?: Record<string, unknown> },
     requiredFields: string[] = []
 ): T {
     let data: T;

@@ -6,13 +6,6 @@ import {
   PaymentSessionStatus as PaymentSession,
 } from "@medusajs/framework/utils";
 import { MedusaContainer } from "@medusajs/framework";
-import {
-  PaymentProviderError,
-  PaymentProviderSessionResponse,
-  PaymentSessionStatus,
-  UpdatePaymentProviderSession,
-} from "@medusajs/types";
-
 import HyperSwitch from "../../libs/hyperswitch";
 import { configWorkflow, customWorkflow, proxyWorkflow } from "../../workflows";
 import {
@@ -26,10 +19,27 @@ import {
   validateWebhook,
   extractPaymentData
 } from "../../utils";
-import { CreatePaymentProviderSession } from "../../types/payment-processor-types";
 import {
   ProviderWebhookPayload,
   WebhookActionResult,
+  CapturePaymentInput,
+  CapturePaymentOutput,
+  InitiatePaymentInput,
+  InitiatePaymentOutput,
+  UpdatePaymentInput,
+  UpdatePaymentOutput,
+  DeletePaymentInput,
+  DeletePaymentOutput,
+  AuthorizePaymentInput,
+  AuthorizePaymentOutput,
+  CancelPaymentInput,
+  CancelPaymentOutput,
+  RetrievePaymentInput,
+  RetrievePaymentOutput,
+  RefundPaymentInput,
+  RefundPaymentOutput,
+  GetPaymentStatusInput,
+  GetPaymentStatusOutput,
 } from "@medusajs/framework/types";
 class HyperswitchPaymentProvider extends AbstractPaymentProvider {
   static identifier: string = "hyperswitch";
@@ -122,15 +132,22 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       ...additionalData
     };
   }
-
   async initiatePayment(
-    context: any
-  ): Promise<PaymentProviderError | PaymentProviderSessionResponse> {
+    context: InitiatePaymentInput
+  ): Promise<InitiatePaymentOutput> {
     try {
       await this.initializeHyperswitch();
       
+      if (!context.data) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "Payment context data is required",
+          "400"
+        );
+      }
+
       const formattedData = formatPaymentData(
-        context,
+        context as any,
         this.setupFutureUsage,
         this.captureMethod,
         this.profileId,
@@ -140,7 +157,8 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       const response = await this.hyperswitch.transactions.create(formattedData);
       
       return {
-        data: this.formatResponseData(response.data)
+        id: response.data.payment_id,
+        data: this.formatResponseData(response.data),
       };
     } catch (error) {
       return this.handleError(
@@ -152,13 +170,13 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
   }
 
   async updatePayment(
-    context: any
-  ): Promise<PaymentProviderError | PaymentProviderSessionResponse> {
+    input: UpdatePaymentInput
+  ): Promise<UpdatePaymentOutput> {
     try {
       await this.initializeHyperswitch();
       
       const formattedData = formatPaymentData(
-        context,
+        input as any,
         this.setupFutureUsage,
         this.captureMethod,
         this.profileId,
@@ -170,7 +188,7 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       );
       
       return {
-        data: this.formatResponseData(response.data)
+        data: this.formatResponseData(response.data),
       };
     } catch (error) {
       return this.handleError(
@@ -182,14 +200,13 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
   }
 
   async deletePayment(
-    paymentSessionData: Record<string, unknown>
-  ): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
+    input: DeletePaymentInput
+  ): Promise<DeletePaymentOutput> {
     try {
-      const { payment_id } = extractPaymentData(paymentSessionData, ['payment_id']);
+      const { payment_id } = extractPaymentData(input, ['payment_id']);
       
       if (!payment_id) {
         return {
-          status: PaymentSession.CANCELED,
           data: {},
         };
       }
@@ -218,7 +235,6 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       });
 
       return {
-        status: PaymentSession.CANCELED,
         data: {},
       };
     } catch (error) {
@@ -231,19 +247,12 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
   }
 
   async authorizePayment(
-    paymentSessionData: Record<string, unknown>,
-    context: Record<string, unknown>
-  ): Promise<
-    | PaymentProviderError
-    | {
-        status: PaymentSessionStatus;
-        data: PaymentProviderSessionResponse["data"];
-      }
-  > {
+    input: AuthorizePaymentInput
+  ): Promise<AuthorizePaymentOutput> {
     try {
       await this.initializeHyperswitch();
       
-      const { payment_id } = extractPaymentData(paymentSessionData, ['payment_id']);
+      const { payment_id } = extractPaymentData(input, ['payment_id']);
       
       if (!payment_id) {
       throw new MedusaError(
@@ -253,7 +262,7 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       );
       }
       
-      const status = await this.getPaymentStatus(paymentSessionData);
+      const { status } = await this.getPaymentStatus(input);
       
       this.logger.info(
       "Payment authorization status checked",
@@ -264,7 +273,7 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       return {
       status,
       data: {
-        ...filterNull(paymentSessionData),
+        ...filterNull(input.data ?? {}),
         status,
       },
       };
@@ -278,13 +287,13 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
   }
 
   async capturePayment(
-    paymentData: Record<string, unknown>
-  ): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
+    paymentData: CapturePaymentInput
+  ): Promise<CapturePaymentOutput> {
     try {
       const { payment_id, amount } = extractPaymentData(paymentData, ['amount', 'payment_id']);
       
       await this.initializeHyperswitch();
-      const currentStatus = await this.getPaymentStatus(paymentData);
+      const { status: currentStatus } = await this.getPaymentStatus(paymentData);
 
       // Only capture if not already captured
       if (currentStatus !== PaymentSession.CAPTURED) {
@@ -300,13 +309,11 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
         );
 
         return {
-          status: PaymentSession.CAPTURED,
           data: filterNull(responseData),
         };
       }
 
       return {
-        status: PaymentSession.CAPTURED,
         data: paymentData,
       };
     } catch (error) {
@@ -319,13 +326,11 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
   }
 
   async cancelPayment(
-    paymentData: Record<string, unknown>
-  ): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
+    input: CancelPaymentInput
+  ): Promise<CancelPaymentOutput> {
     try {
-      const data = await this.deletePayment(paymentData);
-      return {
-        ...data,
-      };
+      const { data } = await this.deletePayment(input);
+      return { data };
     } catch (error) {
       return this.handleError(
         "Error in canceling payment",
@@ -336,10 +341,10 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
   }
 
   async retrievePayment(
-    paymentSessionData: Record<string, unknown>
-  ): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
+    input: RetrievePaymentInput
+  ): Promise<RetrievePaymentOutput> {
     try {
-      const { payment_id } = extractPaymentData(paymentSessionData, ['payment_id']);
+      const { payment_id } = extractPaymentData(input, ['payment_id']);
       
       if (!payment_id) {
         throw new MedusaError(
@@ -356,7 +361,7 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       
       return {
         data: {
-          ...paymentSessionData,
+          ...(input.data ?? {}),
           ...data,
         },
       };
@@ -370,16 +375,16 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
   }
 
   async refundPayment(
-    paymentData: Record<string, unknown>,
-    refundAmount?: number
-  ): Promise<PaymentProviderError | PaymentProviderSessionResponse["data"]> {
+    input: RefundPaymentInput
+  ): Promise<RefundPaymentOutput> {
     try {
       const { payment_id, amount, currency, metadata } = extractPaymentData(
-        paymentData, 
+        input,
         ['payment_id', 'amount', 'currency', 'metadata']
       );
       
       let refAmount: number;
+      const refundAmount = input.amount ? Number(input.amount) : undefined;
       
       if (!refundAmount) {
         // If no refund amount is provided, use the full amount
@@ -387,7 +392,7 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       } else {
         // Only convert refundAmount if it's explicitly provided
         refAmount = toHyperSwitchAmount({
-          amount: refundAmount.toString(),
+          amount: refundAmount,
           currency: currency as string,
         });
         
@@ -418,7 +423,7 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
       
       return {
         data: {
-          ...paymentData,
+          ...(input.data ?? {}),
           ...api_data,
         },
       };
@@ -437,10 +442,10 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
   }
 
   async getPaymentStatus(
-    paymentSessionData: Record<string, unknown>
-  ): Promise<PaymentSessionStatus> {
+    input: GetPaymentStatusInput
+  ): Promise<GetPaymentStatusOutput> {
     try {
-      const { payment_id } = extractPaymentData(paymentSessionData, ['payment_id']);
+      const { payment_id } = extractPaymentData(input, ['payment_id']);
 
       if (!payment_id) {
         throw new MedusaError(
@@ -455,7 +460,9 @@ class HyperswitchPaymentProvider extends AbstractPaymentProvider {
         payment_id: payment_id as string,
       });
       
-      return mapProcessorStatusToPaymentStatus(paymentData.status as any);
+      return {
+        status: mapProcessorStatusToPaymentStatus(paymentData.status as any),
+      };
     } catch (error) {
       return this.handleError(
         "Error in getting payment status",

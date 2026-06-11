@@ -6,90 +6,57 @@
   </a>
 </p>
 
-## Overview
-
-HyperSwitch payment processor plugin for Medusa enables seamless payment processing through the HyperSwitch platform. This plugin supports multiple payment methods and provides a unified checkout experience for your Medusa-powered e-commerce store.
+Medusa v2 payment plugin for [HyperSwitch](https://hyperswitch.io) — unified checkout, webhooks, refunds, proxy support, and an admin configuration UI.
 
 ## Features
 
-- ✅ Process payments through HyperSwitch's unified API
-- ✅ Support for multiple payment methods
-- ✅ Unified checkout experience
-- ✅ Webhook handling for payment events
-- ✅ Payment status synchronization
-- ✅ Refund processing
+- Process payments through HyperSwitch's unified API
+- Multiple payment methods with a unified checkout experience
+- Webhook handling and payment status synchronization
+- Manual and automatic capture modes
+- Refund processing
+- Admin UI for API keys, proxy, customization, and logging
 
 ## Prerequisites
 
-- [Medusa server](https://docs.medusajs.com/) version >= 2.4.0
-- [Node.js](https://nodejs.org/en/) version 16 or later
-- [HyperSwitch account](https://hyperswitch.io/register) and API keys
+- [Medusa](https://docs.medusajs.com/) **v2.15+**
+- [Node.js](https://nodejs.org/) **v20+**
+- A [HyperSwitch](https://hyperswitch.io/register) account and API keys
 
-## Development Testing Guide
+## Installation
 
-Follow these steps to integrate and test the plugin in your local environment:
-
-### 1. Create a Medusa store
+Install the plugin in your Medusa application:
 
 ```bash
-npx create-medusa-app medusa-test-store
-cd medusa-test-store
+npm install medusa-payment-hyperswitch
+# or
+yarn add medusa-payment-hyperswitch
+# or
+pnpm add medusa-payment-hyperswitch
 ```
 
-> **Note**: This plugin has been verified with Medusa v2
+### 1. Set the encryption key
 
-### 2. Install required dependencies
-
-```bash
-yarn add https-proxy-agent@^7.0.5 lucide-react@^0.460.0 class-variance-authority@^0.7.0
-```
-
-### 3. Clone and prepare the plugin
-
-```bash
-git clone https://github.com/Ayyanaruto/hyperswitch-medusajs-plugin.git
-cd hyperswitch-medusajs-plugin
-git checkout develop-plugin
-yarn install
-yarn build
-npx medusa plugin:publish
-```
-
-### 4. Add the plugin to your Medusa store
-
-```bash
-cd ../medusa-test-store
-npx medusa plugin:add juspay-hyperswitch
-```
-### 5. Go to `.env` file and add a new variable `HYPERSWITCH_HASH_KEY`
-
-- First, generate a **32-byte key** using either **OpenSSL** or **Node.js**.
-- To generate it on **Mac** or **Linux**, use one of the following commands:
+Generate a 32-byte key for encrypting secrets stored by the plugin:
 
 ```bash
 openssl rand -base64 32
 ```
 
-or
-
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-```
-
-- Then, in your `.env` file, create the variable and paste the generated key:
+Add it to your `.env`:
 
 ```env
 HYPERSWITCH_HASH_KEY=your-generated-base64-key-here
 ```
-### 6. Configure your Medusa server
 
-Update your `medusa-config.ts` file:
+### 2. Configure Medusa
+
+Update `medusa-config.ts`:
 
 ```typescript
-// medusa-config.ts
-import { loadEnv, defineConfig } from '@medusajs/framework/utils'
+import { loadEnv, defineConfig } from "@medusajs/framework/utils"
 
-loadEnv(process.env.NODE_ENV || 'development', process.cwd())
+loadEnv(process.env.NODE_ENV || "development", process.cwd())
 
 module.exports = defineConfig({
   projectConfig: {
@@ -100,62 +67,91 @@ module.exports = defineConfig({
       authCors: process.env.AUTH_CORS!,
       jwtSecret: process.env.JWT_SECRET || "supersecret",
       cookieSecret: process.env.COOKIE_SECRET || "supersecret",
-    }
+    },
   },
-  modules:[
+  modules: [
     {
       resolve: "@medusajs/medusa/payment",
       options: {
         providers: [
           {
             id: "hyperswitch",
-            resolve: "juspay-hyperswitch/providers/hyperswitch",
-          }
+            resolve: "medusa-payment-hyperswitch/providers/hyperswitch",
+          },
         ],
       },
     },
   ],
   plugins: [
     {
-      resolve: "juspay-hyperswitch",
-      // AES-256-GCM requires a 256-bit (32-byte) base64 key
-      // Generate it using: openssl rand -base64 32 or run node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
-      // Store this securely in your environment variables
+      resolve: "medusa-payment-hyperswitch",
       options: {
-        key : process.env.HYPERSWITCH_HASH_KEY,
+        key: process.env.HYPERSWITCH_HASH_KEY,
       },
     },
-  ]
+  ],
 })
 ```
 
-### 7. Start and test the integration
+### 3. Run migrations and start
 
 ```bash
-npm run start
+npx medusa db:migrate
+npm run dev
 ```
 
-### 8. Configure the payment provider
+### 4. Configure in Admin
 
-1. Access the Medusa Admin panel at `http://localhost:9000/app`
-2. Navigate to **Extensions > Hyperswitch**
-3. Configure the HyperSwitch plugin with your API keys from the HyperSwitch dashboard
-4. Create a test product and complete a checkout to verify the payment flow
+1. Open the Medusa Admin panel (e.g. `http://localhost:9000/app`)
+2. Go to **Extensions → Hyperswitch**
+3. Enter your HyperSwitch API keys, profile ID, and environment
+4. Enable the payment provider for your region in **Settings → Regions**
+
+## Local plugin development
+
+To work on the plugin itself and test it in a Medusa store:
+
+```bash
+git clone https://github.com/Ayyanaruto/hyperswitch-medusajs-plugin.git
+cd hyperswitch-medusajs-plugin
+pnpm install
+pnpm build
+npx medusa plugin:publish
+```
+
+In your Medusa store:
+
+```bash
+npx medusa plugin:add medusa-payment-hyperswitch
+```
+
+Keep `pnpm dev` running in the plugin repo during development so changes are republished automatically.
+
+## Publishing to npm
+
+From the plugin repository:
+
+```bash
+pnpm build
+npm publish
+```
+
+The `prepublishOnly` script runs the build automatically before publish.
 
 ## Troubleshooting
 
-If you encounter issues during integration:
+- **Payment errors** — Check Medusa server logs and the plugin's logging dashboard in Admin
+- **Webhooks** — Verify webhook URLs and signing in your HyperSwitch dashboard
+- **API keys** — Confirm sandbox vs production keys match your configured environment
+- **Proxy** — Configure proxy settings in the Admin UI if your server requires one
 
-- Check server logs for payment-related errors
-- Verify webhook configurations in your HyperSwitch dashboard
-- Use HyperSwitch test mode to simulate different payment scenarios
-- Make sure your API keys are correctly configured in the Medusa admin panel
-- Check network requests for any API communication errors
-##TODO
-- 
 ## Resources
 
 - [HyperSwitch Documentation](https://hyperswitch.io/docs)
-- [Plugin GitHub Repository](https://github.com/Ayyanaruto/hyperswitch-medusajs-plugin)
-- [Medusa Documentation](https://docs.medusajs.com/learn/fundamentals/plugins/create)
-- [Open an Issue](https://github.com/Ayyanaruto/hyperswitch-medusajs-plugin/issues)
+- [Plugin Repository](https://github.com/Ayyanaruto/hyperswitch-medusajs-plugin)
+- [Medusa Plugin Guide](https://docs.medusajs.com/learn/fundamentals/plugins/create)
+- [Report an Issue](https://github.com/Ayyanaruto/hyperswitch-medusajs-plugin/issues)
+
+## License
+
+MIT
