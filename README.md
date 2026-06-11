@@ -25,17 +25,36 @@ Medusa v2 payment plugin for [HyperSwitch](https://hyperswitch.io) — unified c
 
 ## Installation
 
-Install the plugin in your Medusa application:
+Follow these steps **in your Medusa store project** (the app where you run `medusa develop`), not in this plugin repository.
+
+### Step 1: Create a Medusa application (if you don't have one)
+
+```bash
+npx create-medusa-app@latest my-medusa-store
+cd my-medusa-store
+```
+
+### Step 2: Install the plugin package
+
+From your **Medusa application root directory**, install the plugin:
 
 ```bash
 npm install medusa-payment-hyperswitch
-# or
+```
+
+Or with another package manager:
+
+```bash
 yarn add medusa-payment-hyperswitch
 # or
 pnpm add medusa-payment-hyperswitch
 ```
 
-### 1. Set the encryption key
+This installs the plugin and its runtime dependencies (`axios`, `axios-retry`, `https-proxy-agent`, and admin UI packages). Your Medusa app must already satisfy the [peer dependencies](package.json) (`@medusajs/framework`, `@medusajs/medusa`, etc. at **v2.15+**).
+
+> **Local development:** To test unpublished changes from this repo, use `npx medusa plugin:add medusa-payment-hyperswitch` after running `npx medusa plugin:publish` in the plugin repo. See [Local plugin development](#local-plugin-development).
+
+### Step 3: Set the encryption key
 
 Generate a 32-byte key for encrypting secrets stored by the plugin:
 
@@ -49,7 +68,7 @@ Add it to your `.env`:
 HYPERSWITCH_HASH_KEY=your-generated-base64-key-here
 ```
 
-### 2. Configure Medusa
+### Step 4: Configure Medusa
 
 Update `medusa-config.ts`:
 
@@ -93,14 +112,14 @@ module.exports = defineConfig({
 })
 ```
 
-### 3. Run migrations and start
+### Step 5: Run migrations and start
 
 ```bash
 npx medusa db:migrate
 npm run dev
 ```
 
-### 4. Configure in Admin
+### Step 6: Configure in Admin
 
 1. Open the Medusa Admin panel (e.g. `http://localhost:9000/app`)
 2. Go to **Extensions → Hyperswitch**
