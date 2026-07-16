@@ -50,7 +50,7 @@ yarn add medusa-payment-hyperswitch
 pnpm add medusa-payment-hyperswitch
 ```
 
-This installs the plugin and its runtime dependencies (`axios`, `axios-retry`, `https-proxy-agent`, and admin UI packages). Your Medusa app must already satisfy the [peer dependencies](package.json) (`@medusajs/framework`, `@medusajs/medusa`, etc. at **v2.15+**).
+This installs the plugin and its runtime dependencies (`axios`, `axios-retry`, `https-proxy-agent`, and admin UI packages). Your Medusa app must already satisfy the plugin's peer dependencies.
 
 > **Local development:** To test unpublished changes from this repo, use `npx medusa plugin:add medusa-payment-hyperswitch` after running `npx medusa plugin:publish` in the plugin repo. See [Local plugin development](#local-plugin-development).
 
@@ -125,6 +125,54 @@ npm run dev
 2. Go to **Extensions → Hyperswitch**
 3. Enter your HyperSwitch API keys, profile ID, and environment
 4. Enable the payment provider for your region in **Settings → Regions**
+
+## Storefront Integration (Next.js Starter)
+
+You can use this plugin with the [Medusa Next.js Starter](https://medusajs.com/nextjs-commerce/) (for example, your `hyperswitch-medusa-storefront` repository) to offer HyperSwitch payments at checkout.
+
+### 1) Configure the storefront environment
+
+In your storefront app (Next.js), ensure your Medusa backend URL is set:
+
+```env
+NEXT_PUBLIC_MEDUSA_BACKEND_URL=http://localhost:9000
+```
+
+If your storefront includes Stripe as an additional provider, keep your Stripe key as needed:
+
+```env
+NEXT_PUBLIC_STRIPE_KEY=your-stripe-public-key
+```
+
+### 2) Ensure backend CORS allows storefront origin
+
+In your Medusa backend `.env`, set `STORE_CORS` to your storefront origin(s):
+
+```env
+STORE_CORS=http://localhost:8000
+```
+
+If you use multiple origins, separate them by commas.
+
+### 3) Enable HyperSwitch in the target region
+
+In Medusa Admin:
+
+1. Open **Settings → Regions**
+2. Select your region
+3. Add/enable **hyperswitch** payment provider
+4. Save changes
+
+### 4) Test checkout from the storefront
+
+1. Start backend (`npm run dev` in your Medusa app)
+2. Start storefront (`yarn dev` in your Next.js app)
+3. Add a product to cart and proceed to checkout
+4. Select HyperSwitch payment method and place an order
+
+### 5) Validate webhooks (recommended)
+
+For reliable payment state updates, configure HyperSwitch webhooks to point to your Medusa backend webhook endpoint and verify events are received in backend logs.
 
 ## Local plugin development
 
