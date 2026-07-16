@@ -13,16 +13,23 @@
   },
   "homepage": "https://github.com/Ayyanaruto/hyperswitch-medusajs-plugin#readme",
   "keywords": [
-    "medusa",
-    "medusa-v2",
     "medusa-plugin",
+    "medusa-plugin-payment",
     "medusa-plugin-integration",
-    "medusa-plugin-other",
-    "hyperswitch",
-    "juspay",
+    "medusa-v2",
+    "medusa",
+    "medusajs",
     "payment",
-    "payment-provider",
-    "ecommerce"
+    "hyperswitch",
+    "prism",
+    "stripe",
+    "adyen",
+    "paypal",
+    "globalpay",
+    "braintree",
+    "cybersource",
+    "mollie",
+    "custom-payments"
   ],
   "files": [
     ".medusa/server"
