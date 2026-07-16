@@ -128,33 +128,20 @@ npm run dev
 
 ## Storefront Integration (Next.js Starter)
 
-You can use this plugin with the [Medusa Next.js Starter](https://medusajs.com/nextjs-commerce/) (for example, your `hyperswitch-medusa-storefront` repository) to offer HyperSwitch payments at checkout.
+Use this plugin with the storefront repo:  
+**https://github.com/Ayyanaruto/hyperswitch-medusa-storefront**
 
-### 1) Configure the storefront environment
+### Storefront environment variables
 
-In your storefront app (Next.js), ensure your Medusa backend URL is set:
-
-```env
-NEXT_PUBLIC_MEDUSA_BACKEND_URL=http://localhost:9000
-```
-
-If your storefront includes Stripe as an additional provider, keep your Stripe key as needed:
+In your storefront project's `.env.local`, set:
 
 ```env
-NEXT_PUBLIC_STRIPE_KEY=your-stripe-public-key
+NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=pk_
+MEDUSA_BACKEND_URL=http://localhost:9000
+NEXT_PUBLIC_BASE_URL=http://localhost:8000
+NEXT_PUBLIC_HYPERSWITCH_KEY=pk_snd_
 ```
-
-### 2) Ensure backend CORS allows storefront origin
-
-In your Medusa backend `.env`, set `STORE_CORS` to your storefront origin(s):
-
-```env
-STORE_CORS=http://localhost:8000
-```
-
-If you use multiple origins, separate them by commas.
-
-### 3) Enable HyperSwitch in the target region
+Enable HyperSwitch in the target region
 
 In Medusa Admin:
 
